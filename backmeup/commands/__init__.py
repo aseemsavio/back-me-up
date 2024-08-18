@@ -11,6 +11,16 @@ def register_commands(cli: Typer):
     """
 
     @cli.command(
+        name="setup",
+        help="Sets up the backmeup CLI."
+    )
+    def setup():
+        """
+
+        :return:
+        """
+
+    @cli.command(
         name="create",
         help="Creates a new backup set."
     )
