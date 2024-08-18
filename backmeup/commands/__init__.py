@@ -3,7 +3,7 @@ from typing import Optional
 from typer import Typer, Option
 from rich import print
 
-from backmeup.commands.configuration import configure_cli
+from backmeup.commands.configuration import configure_cli, reset_cli
 
 
 def register_commands(cli: Typer):
@@ -35,6 +35,13 @@ def register_commands(cli: Typer):
             secret_key=secret_key,
             region=region
         )
+
+    @cli.command(
+        name="reset",
+        help="Resets the backmeup CLI."
+    )
+    def reset():
+        reset_cli()
 
     @cli.command(
         name="create",

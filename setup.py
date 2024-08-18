@@ -26,7 +26,8 @@ setup(
     install_requires=[
         'typer[all]>=0.12.4',
         'rich>=13.7.1',
-        'keyring>=25.3.0'
+        'keyring>=25.3.0',
+        'boto3>=1.35.0'
     ],
     entry_points={
         'console_scripts': [

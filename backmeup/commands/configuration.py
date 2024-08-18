@@ -1,10 +1,8 @@
 from typing import Optional
-from rich import print
-import keyring
 
+from backmeup.services.s3 import check_s3_connection
+from backmeup.services.vault import setup_vault, clear_vault
 from backmeup.utils import print_error
-from backmeup.utils.constants import KEYRING_SERVICE_NAME, KEYRING_BACKUP_LOCATION_KEY, KEYRING_AWS_REGION_KEY, \
-    KEYRING_AWS_ACCESS_KEY, KEYRING_AWS_SECRET_KEY
 
 
 def configure_cli(
@@ -18,7 +16,7 @@ def configure_cli(
     :return:
     """
     if location not in {"s3"}:
-        print_error('Only "S3" is supported for --location or -l.')
+        print_error('Only "S3" is supported for [red bold]--location[/] or [red bold]-l[/].')
         exit()
 
     if region not in {
@@ -33,16 +31,20 @@ def configure_cli(
         exit()
 
     if access_key is None:
-        print_error('"--access" or "-a" should be provided.')
+        print_error('[red bold]--access[/] or [red bold]-a[/] should be provided.')
         exit()
 
     if secret_key is None:
-        print_error('"--secret" or "-s" should be provided.')
+        print_error('[red bold]--secret[/] or [red bold]-s[/] should be provided.')
         exit()
 
-    keyring.set_password(KEYRING_SERVICE_NAME, KEYRING_BACKUP_LOCATION_KEY, location)
-    keyring.set_password(KEYRING_SERVICE_NAME, KEYRING_AWS_REGION_KEY, region)
-    keyring.set_password(KEYRING_SERVICE_NAME, KEYRING_AWS_ACCESS_KEY, access_key)
-    keyring.set_password(KEYRING_SERVICE_NAME, KEYRING_AWS_SECRET_KEY, secret_key)
+    setup_vault(location=location, access_key=access_key, secret_key=secret_key, region=region)
+    connected = check_s3_connection()
+    if not connected:
+        clear_vault()
+        print_error("S3 is not configured. Please check your credentials and retry again.")
+        exit()
 
-    print("Successfully configured your backmeup CLI")
+
+def reset_cli():
+    clear_vault()
