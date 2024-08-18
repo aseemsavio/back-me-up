@@ -23,3 +23,4 @@ def check_s3_connection() -> bool:
         return True
     except Exception:
         return False
+
