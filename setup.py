@@ -24,7 +24,9 @@ setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'typer[all]>=0.12.4'
+        'typer[all]>=0.12.4',
+        'rich>=13.7.1',
+        'keyring>=25.3.0'
     ],
     entry_points={
         'console_scripts': [
