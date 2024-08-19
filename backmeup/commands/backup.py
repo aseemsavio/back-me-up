@@ -1,8 +1,10 @@
 from rich.panel import Panel
 from rich.text import Text
 
+from backmeup.services.s3 import create_s3_bucket_if_not_exists, upload_directory_to_s3
 from backmeup.services.sqlite import connect_to_db, Backup, create_new_backup_in_db, list_all_backups_from_db, \
     delete_backup_by_id, get_backup_by_id_from_db
+from backmeup.services.vault import get_vault_data
 from backmeup.utils import print_error
 from backmeup.utils.files import scan_directory
 from backmeup.utils.misc import current_timestamp_ms
@@ -24,10 +26,13 @@ def create_backup_set(
         created_at=now,
         updated_at=now,
         source_absolute_path=path,
-        target_location=target,
+        target_location=target.lower(),
         mutable_backup=mutable
     )
     create_new_backup_in_db(connection=connection, backup=backup)
+    vault = get_vault_data()
+    status = create_s3_bucket_if_not_exists(backup.target_location, vault.region)
+    print(status)
 
 
 def list_all_backups():
@@ -81,5 +86,15 @@ def scan_backup_location(backup_id: int):
 
         # Print the panel
         console.print(panel)
+    else:
+        print_error("Could not find the provided backup set.")
+
+
+def backup_directory(backup_id: int):
+    scan_backup_location(backup_id=backup_id)
+    connection = connect_to_db()
+    backup = get_backup_by_id_from_db(connection=connection, backup_id=backup_id)
+    if backup:
+        upload_directory_to_s3(backup.target_location, backup.source_absolute_path)
     else:
         print_error("Could not find the provided backup set.")

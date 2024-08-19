@@ -4,6 +4,9 @@ from botocore.client import BaseClient
 
 from backmeup.utils.constants import KEYRING_SERVICE_NAME, KEYRING_AWS_ACCESS_KEY, KEYRING_AWS_SECRET_KEY
 
+import os
+from botocore.exceptions import ClientError
+
 
 def s3_client() -> BaseClient:
     access_key = keyring.get_password(KEYRING_SERVICE_NAME, KEYRING_AWS_ACCESS_KEY)
@@ -24,3 +27,49 @@ def check_s3_connection() -> bool:
     except Exception:
         return False
 
+
+def create_s3_bucket_if_not_exists(bucket_name: str, region: str) -> str:
+    client = s3_client()
+
+    # Check if the bucket already exists
+    try:
+        client.head_bucket(Bucket=bucket_name)
+        return "bucket-exists"
+    except ClientError as e:
+        # If a 404 error is thrown, the bucket does not exist
+        error_code = e.response['Error']['Code']
+        if error_code == '404':
+            # Create the bucket
+            client.create_bucket(
+                Bucket=bucket_name.lower(),
+                CreateBucketConfiguration={'LocationConstraint': region}
+            )
+            return "bucket-created"
+        else:
+            print(e)
+            return "bucket-creation-error"
+
+
+def upload_directory_to_s3(bucket_name: str, directory_path: str):
+    client = boto3.client('s3')
+
+    for root, dirs, files in os.walk(directory_path):
+        for filename in files:
+            # Construct the full local path
+            local_path = os.path.join(root, filename)
+
+            # Construct the S3 path (relative to the directory_path)
+            relative_path = os.path.relpath(local_path, directory_path)
+            s3_path = relative_path.replace("\\", "/")  # Ensure correct S3 path format
+
+            try:
+                # Upload the file to S3 with Glacier Deep Archive storage class
+                client.upload_file(
+                    local_path,
+                    bucket_name,
+                    s3_path,
+                    ExtraArgs={'StorageClass': 'DEEP_ARCHIVE'}
+                )
+                print(f"Uploaded {s3_path} to {bucket_name} with storage class DEEP_ARCHIVE")
+            except ClientError as e:
+                print(f"Error uploading {s3_path}: {e}")

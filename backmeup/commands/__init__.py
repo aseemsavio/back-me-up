@@ -2,7 +2,8 @@ from typing import Optional
 
 from typer import Typer, Option, Argument
 
-from backmeup.commands.backup import create_backup_set, list_all_backups, delete_backup, scan_backup_location
+from backmeup.commands.backup import create_backup_set, list_all_backups, delete_backup, scan_backup_location, \
+    backup_directory
 from backmeup.commands.configuration import configure_cli, reset_cli
 
 
@@ -88,3 +89,14 @@ def register_commands(cli: Typer):
             backup_id: str = Argument(help="ID of the backup path you wish to scan.")
     ):
         scan_backup_location(backup_id=backup_id)
+
+    @cli.command(
+        name="backup",
+        help="Backs up the source location of the provided backup set to teh remote location."
+    )
+    def do_backup_of_directory(
+            backup_id: str = Argument(help="ID of the backup path you wish to backup.")
+    ):
+        backup_directory(backup_id=backup_id)
+
+
