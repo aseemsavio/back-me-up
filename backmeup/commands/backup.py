@@ -8,7 +8,6 @@ from backmeup.utils.files import scan_directory
 from backmeup.utils.misc import current_timestamp_ms
 from rich.console import Console
 from rich.table import Table
-from rich import print
 
 
 def create_backup_set(

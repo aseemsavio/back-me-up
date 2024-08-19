@@ -4,9 +4,6 @@ from typer import Typer, Option, Argument
 
 from backmeup.commands.backup import create_backup_set, list_all_backups, delete_backup, scan_backup_location
 from backmeup.commands.configuration import configure_cli, reset_cli
-from rich.table import Table
-
-from backmeup.utils import print_error
 
 
 def register_commands(cli: Typer):
