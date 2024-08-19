@@ -50,7 +50,6 @@ def connect_to_db() -> Connection:
     # Connect to the SQLite database
     db_path = get_database_path()
     conn = sqlite3.connect(str(db_path))
-    print(f"Connected to DB at {db_path}")
 
     # create all the tables here.
     create_backups_table_if_not_exists(connection=conn)
@@ -59,14 +58,10 @@ def connect_to_db() -> Connection:
 
 def create_new_backup_in_db(connection: Connection, backup: Backup):
     cursor = connection.cursor()
-
-    # SQL command to insert data into the Backup table
     insert_query = '''
     INSERT INTO Backup (description, created_at, updated_at, source_absolute_path, target_location, mutable_backup)
     VALUES (?, ?, ?, ?, ?, ?);
     '''
-
-    # Execute the command with the sample data
     cursor.execute(
         insert_query, (
             backup.description,
@@ -77,11 +72,7 @@ def create_new_backup_in_db(connection: Connection, backup: Backup):
             backup.mutable_backup
         )
     )
-
-    # Commit your changes in the database
     connection.commit()
-
-    # Close the connection
     connection.close()
 
 
@@ -92,16 +83,35 @@ def list_all_backups_from_db(connection: Connection) -> [Backup]:
     :return:
     """
     cursor = connection.cursor()
-    # Query to select all rows from the backups table
     cursor.execute(
         'SELECT id, description, created_at, updated_at, source_absolute_path, target_location, mutable_backup FROM Backup'
     )
-
-    # Fetch all rows from the query
     rows = cursor.fetchall()
+    connection.close()
+    return [Backup(*row) for row in rows]
 
-    # Close the connection
+
+def delete_backup_by_id(connection: Connection, backup_id: int):
+    cursor = connection.cursor()
+    cursor.execute('''
+        DELETE FROM Backup
+        WHERE id = ?
+    ''', (backup_id,))
+
+    connection.commit()
     connection.close()
 
-    # Map rows to Backup dataclass instances
-    return [Backup(*row) for row in rows]
+
+def get_backup_by_id_from_db(connection: Connection, backup_id: int) -> Optional[Backup]:
+    cursor = connection.cursor()
+    cursor.execute(
+        'SELECT id, description, created_at, updated_at, source_absolute_path, target_location, mutable_backup FROM Backup WHERE id = ?',
+        (backup_id,)
+    )
+    row = cursor.fetchone()
+    connection.close()
+
+    if row:
+        return Backup(*row)
+    else:
+        return None

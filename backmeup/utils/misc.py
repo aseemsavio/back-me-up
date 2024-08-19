@@ -20,3 +20,4 @@ def get_data_base_path_for_os() -> Path:
 def current_timestamp_ms() -> int:
     # Get the current time in milliseconds
     return int(time.time() * 1000)
+

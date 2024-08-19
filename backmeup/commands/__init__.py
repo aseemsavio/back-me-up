@@ -1,10 +1,12 @@
 from typing import Optional
 
-from typer import Typer, Option
+from typer import Typer, Option, Argument
 
-from backmeup.commands.backup import create_backup_set, list_all_backups
+from backmeup.commands.backup import create_backup_set, list_all_backups, delete_backup, scan_backup_location
 from backmeup.commands.configuration import configure_cli, reset_cli
 from rich.table import Table
+
+from backmeup.utils import print_error
 
 
 def register_commands(cli: Typer):
@@ -71,3 +73,21 @@ def register_commands(cli: Typer):
     )
     def list_backups():
         list_all_backups()
+
+    @cli.command(
+        name="remove",
+        help="Removes the provided backup set"
+    )
+    def remove_backup(
+            backup_id: int = Argument(help="ID of the backup you wish to remove."),
+    ):
+        delete_backup(backup_id=backup_id)
+
+    @cli.command(
+        name="scan",
+        help="Scans the source location of the provided backup set."
+    )
+    def scan(
+            backup_id: str = Argument(help="ID of the backup path you wish to scan.")
+    ):
+        scan_backup_location(backup_id=backup_id)
