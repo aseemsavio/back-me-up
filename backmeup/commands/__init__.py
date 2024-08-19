@@ -1,9 +1,10 @@
 from typing import Optional
 
 from typer import Typer, Option
-from rich import print
 
+from backmeup.commands.backup import create_backup_set, list_all_backups
 from backmeup.commands.configuration import configure_cli, reset_cli
+from rich.table import Table
 
 
 def register_commands(cli: Typer):
@@ -45,11 +46,28 @@ def register_commands(cli: Typer):
 
     @cli.command(
         name="create",
-        help="Creates a new backup set."
+        help="Creates a new backup set. This set can be accessed by their id while doing your backup."
     )
-    def create():
-        """
+    def create(
+            description: str = Option(..., "--description", "-d", help="Description for the new backup"),
+            path: str = Option(...,
+                               "--path",
+                               "-p",
+                               help="Absolute path of the directory you wish to backup"
+                               ),
+            target: str = Option(..., "--target", "-t", help="Where you want the backup to be stored in"),
+            mutable: bool = Option(False, "--mutable", "-m", help="A boolean flag to make the backup mutable.")
+    ):
+        create_backup_set(
+            description=description,
+            path=path,
+            target=target,
+            mutable=mutable
+        )
 
-        :return:
-        """
-        print("Hello World")
+    @cli.command(
+        name="list",
+        help="List all the backups configured."
+    )
+    def list_backups():
+        list_all_backups()
