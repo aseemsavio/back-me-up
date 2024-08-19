@@ -4,7 +4,7 @@ import sqlite3
 from sqlite3 import Connection
 from typing import Optional
 
-from backmeup.utils.misc import get_data_base_path_for_os
+from backmeup.utils.misc import get_data_base_path_for_os, current_timestamp_ms
 
 
 @dataclass
@@ -46,6 +46,53 @@ def create_backups_table_if_not_exists(connection: Connection):
     connection.commit()
 
 
+def create_individual_backup_table_if_not_exists(connection: Connection, backup_id: int):
+    cursor = connection.cursor()
+
+    table_name = f"backup_history_{backup_id}"
+    # Create a table
+    cursor.execute(f'''
+        CREATE TABLE IF NOT EXISTS {table_name} (
+            file TEXT PRIMARY KEY,
+            uploaded_at INTEGER NOT NULL
+        );
+    ''')
+
+    connection.commit()
+
+
+def check_if_file_is_backed_up(connection: Connection, backup_id: int, file: str) -> bool:
+    table_name = f"backup_history_{backup_id}"
+    cursor = connection.cursor()
+    cursor.execute(
+        f'SELECT * FROM {table_name} WHERE file = ?',
+        (file,)
+    )
+    row = cursor.fetchone()
+
+    if row:
+        return True
+    else:
+        return False
+
+
+def create_file_record_after_backup(connection: Connection, backup_id: int, file: str):
+    table_name = f"backup_history_{backup_id}"
+    now = current_timestamp_ms()
+    cursor = connection.cursor()
+    insert_query = f'''
+        INSERT INTO {table_name} (file, uploaded_at)
+        VALUES (?, ?);
+        '''
+    cursor.execute(
+        insert_query, (
+            file,
+            now
+        )
+    )
+    connection.commit()
+
+
 def connect_to_db() -> Connection:
     # Connect to the SQLite database
     db_path = get_database_path()
@@ -73,7 +120,6 @@ def create_new_backup_in_db(connection: Connection, backup: Backup):
         )
     )
     connection.commit()
-    connection.close()
 
 
 def list_all_backups_from_db(connection: Connection) -> [Backup]:
@@ -87,7 +133,6 @@ def list_all_backups_from_db(connection: Connection) -> [Backup]:
         'SELECT id, description, created_at, updated_at, source_absolute_path, target_location, mutable_backup FROM Backup'
     )
     rows = cursor.fetchall()
-    connection.close()
     return [Backup(*row) for row in rows]
 
 
@@ -99,7 +144,6 @@ def delete_backup_by_id(connection: Connection, backup_id: int):
     ''', (backup_id,))
 
     connection.commit()
-    connection.close()
 
 
 def get_backup_by_id_from_db(connection: Connection, backup_id: int) -> Optional[Backup]:

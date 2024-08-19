@@ -95,6 +95,6 @@ def backup_directory(backup_id: int):
     connection = connect_to_db()
     backup = get_backup_by_id_from_db(connection=connection, backup_id=backup_id)
     if backup:
-        upload_directory_to_s3(backup.target_location, backup.source_absolute_path)
+        upload_directory_to_s3(backup.target_location, backup.source_absolute_path, backup)
     else:
         print_error("Could not find the provided backup set.")
