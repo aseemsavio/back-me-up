@@ -7,11 +7,13 @@ from rich import print
 from rich.console import Console
 
 from backmeup.services.sqlite import check_if_file_is_backed_up, connect_to_db, Backup, create_file_record_after_backup, \
-    create_individual_backup_table_if_not_exists
+    create_individual_backup_table_if_not_exists, get_total_files_backed_up_in_backup_set
 from backmeup.utils.constants import KEYRING_SERVICE_NAME, KEYRING_AWS_ACCESS_KEY, KEYRING_AWS_SECRET_KEY
 
 import os
 from botocore.exceptions import ClientError
+
+from backmeup.utils.files import scan_directory
 
 
 def s3_client() -> BaseClient:
@@ -60,6 +62,9 @@ def upload_mutable_directory_to_s3(bucket_name: str, directory_path: str, backup
     client = s3_client()
     connection = connect_to_db()
     create_individual_backup_table_if_not_exists(connection=connection, backup_id=backup.id)
+    backed_up_files_count = get_total_files_backed_up_in_backup_set(connection=connection, backup_id=backup.id)
+    total_files_in_directory = scan_directory(abs_path=backup.source_absolute_path)["file_count"]
+    files_to_be_uploaded = total_files_in_directory - backed_up_files_count
     uploads = 0
 
     console = Console()
@@ -78,7 +83,8 @@ def upload_mutable_directory_to_s3(bucket_name: str, directory_path: str, backup
                     backed_up = check_if_file_is_backed_up(connection=connection, backup_id=backup.id, file=s3_path)
 
                     if not backed_up:
-                        status.update(status=f'Uploading [gold1]"{s3_path}"[/] -> [orange1]"{bucket_name}"[/]...')
+                        status.update(
+                            status=f'[{uploads}/{files_to_be_uploaded}] Uploading [gold1]"{s3_path}"[/] -> [orange1]"{bucket_name}"[/]...')
                         client.upload_file(
                             local_path,
                             bucket_name,
@@ -90,6 +96,8 @@ def upload_mutable_directory_to_s3(bucket_name: str, directory_path: str, backup
                 except ClientError as e:
                     print(f"[red]Error uploading {s3_path}: {e}[/]")
         print(f"Total files uploaded: {uploads}")
+
+    connection.close()
 
 
 def create_bucket_with_timestamp(bucket_name: str) -> str:

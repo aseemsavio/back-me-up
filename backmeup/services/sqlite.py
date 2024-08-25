@@ -76,6 +76,14 @@ def check_if_file_is_backed_up(connection: Connection, backup_id: int, file: str
         return False
 
 
+def get_total_files_backed_up_in_backup_set(connection: Connection, backup_id: int) -> int:
+    table_name = f"backup_history_{backup_id}"
+    cursor = connection.cursor()
+    cursor.execute(f'SELECT COUNT(*) FROM {table_name}')
+    row_count = cursor.fetchone()[0]
+    return row_count
+
+
 def create_file_record_after_backup(connection: Connection, backup_id: int, file: str):
     table_name = f"backup_history_{backup_id}"
     now = current_timestamp_ms()
