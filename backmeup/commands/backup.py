@@ -1,7 +1,8 @@
 from rich.panel import Panel
 from rich.text import Text
 
-from backmeup.services.s3 import create_s3_bucket_if_not_exists, upload_directory_to_s3
+from backmeup.services.s3 import create_s3_bucket_if_not_exists, upload_mutable_directory_to_s3, \
+    create_bucket_with_timestamp, upload_immutable_directory_to_s3
 from backmeup.services.sqlite import connect_to_db, Backup, create_new_backup_in_db, list_all_backups_from_db, \
     delete_backup_by_id, get_backup_by_id_from_db
 from backmeup.services.vault import get_vault_data
@@ -49,9 +50,15 @@ def list_all_backups():
     table.add_column("Description")
     table.add_column("Path")
     table.add_column("Target")
+    table.add_column("Mutability")
 
     for b in backups:
-        table.add_row(str(b.id), b.description, b.source_absolute_path, b.target_location)
+        if b.mutable_backup:
+            mutability = "Mutable"
+        else:
+            mutability = "Immutable"
+
+        table.add_row(str(b.id), b.description, b.source_absolute_path, b.target_location, mutability)
 
     console = Console()
     console.print(table)
@@ -95,6 +102,17 @@ def backup_directory(backup_id: int):
     connection = connect_to_db()
     backup = get_backup_by_id_from_db(connection=connection, backup_id=backup_id)
     if backup:
-        upload_directory_to_s3(backup.target_location, backup.source_absolute_path, backup)
+        if not backup.mutable_backup:
+            print("Initiating a immutable backup...")
+            s3_folder = create_bucket_with_timestamp(bucket_name=backup.target_location)
+            print(f"Bucket created: {s3_folder}")
+            upload_immutable_directory_to_s3(
+                local_directory=backup.source_absolute_path,
+                bucket_name=backup.target_location,
+                s3_folder=s3_folder
+            )
+        else:
+            print("Initiating a mutable backup...")
+            upload_mutable_directory_to_s3(backup.target_location, backup.source_absolute_path, backup)
     else:
         print_error("Could not find the provided backup set.")
