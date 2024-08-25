@@ -11,7 +11,7 @@ def features_callback(ctx: Context):
     # https://typer.tiangolo.com/tutorial/commands/context/#exclusive-executable-callback
     try:
         if ctx.invoked_subcommand is None:
-            print("Hello")
+            print("Backmeup CLI")
     except Exception:
         pass
 
