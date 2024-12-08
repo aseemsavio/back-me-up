@@ -84,7 +84,7 @@ def upload_mutable_directory_to_s3(bucket_name: str, directory_path: str, backup
 
                     if not backed_up:
                         status.update(
-                            status=f'[{uploads}/{files_to_be_uploaded}] Uploading [gold1]"{s3_path}"[/] -> [orange1]"{bucket_name}"[/]...')
+                            status=f'[{uploads}/{files_to_be_uploaded}] Uploading [gold1]"{s3_path}"[/]')
                         client.upload_file(
                             local_path,
                             bucket_name,
@@ -95,7 +95,7 @@ def upload_mutable_directory_to_s3(bucket_name: str, directory_path: str, backup
                         uploads += 1
                 except ClientError as e:
                     print(f"[red]Error uploading {s3_path}: {e}[/]")
-        print(f"Total files uploaded: {uploads}")
+        print(f"\nTotal files uploaded: {uploads}")
 
     connection.close()
 
@@ -113,9 +113,9 @@ def create_bucket_with_timestamp(bucket_name: str) -> str:
     return new_folder_name
 
 
-def upload_immutable_directory_to_s3(local_directory: str, bucket_name: str, s3_folder: str):
+def upload_immutable_directory_to_s3(local_directory: str, bucket_name: str, s3_folder: str, backup: Backup):
     s3 = s3_client()
-
+    total_files_in_directory = scan_directory(abs_path=backup.source_absolute_path)["file_count"]
     uploads = 0
     console = Console()
     with console.status("[green]Initializing immutable backup...[/green]") as status:
@@ -125,10 +125,11 @@ def upload_immutable_directory_to_s3(local_directory: str, bucket_name: str, s3_
                     local_path = os.path.join(root, filename)
                     relative_path = os.path.relpath(local_path, local_directory)
                     s3_key = os.path.join(s3_folder, relative_path)
-                    status.update(status=f'Uploading [gold1]"{s3_key}"[/] -> [orange1]"{bucket_name}"[/]...')
+                    status.update(
+                        status=f'[{uploads}/{total_files_in_directory}] Uploading [gold1]"{s3_key}"[/]')
                     # Upload the file
                     s3.upload_file(local_path, bucket_name, s3_key, ExtraArgs={'StorageClass': 'DEEP_ARCHIVE'})
                     uploads += 1
                 except Exception as e:
                     print(f"[red]Error uploading {s3_key}: {e}[/]")
-    print(f"Total files uploaded: {uploads}")
+    print(f"\nTotal files uploaded: {uploads}")

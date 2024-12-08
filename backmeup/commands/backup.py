@@ -11,6 +11,7 @@ from backmeup.utils.files import scan_directory
 from backmeup.utils.misc import current_timestamp_ms
 from rich.console import Console
 from rich.table import Table
+from rich import print
 
 
 def create_backup_set(
@@ -103,16 +104,16 @@ def backup_directory(backup_id: int):
     backup = get_backup_by_id_from_db(connection=connection, backup_id=backup_id)
     if backup:
         if not backup.mutable_backup:
-            print("Initiating a immutable backup...")
             s3_folder = create_bucket_with_timestamp(bucket_name=backup.target_location)
-            print(f"Bucket created: {s3_folder}")
+            print(f'Bucket created: "s3://{backup.target_location}/{s3_folder}"')
             upload_immutable_directory_to_s3(
                 local_directory=backup.source_absolute_path,
                 bucket_name=backup.target_location,
-                s3_folder=s3_folder
+                s3_folder=s3_folder,
+                backup=backup
             )
         else:
-            print("Initiating a mutable backup...")
+            print(f'Backup will be uploaded to "s3://{backup.target_location}"')
             upload_mutable_directory_to_s3(backup.target_location, backup.source_absolute_path, backup)
     else:
         print_error("Could not find the provided backup set.")
